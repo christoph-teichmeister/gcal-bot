@@ -1,5 +1,5 @@
 name: "GCal Bot"
-version: "1.4.0"
+version: "1.4.1"
 slug: "gcal_bot"
 description: "Telegram bot: posts Google Calendar events as reminders in any Telegram group that runs /onboard, with Yes/No/Maybe RSVP buttons"
 url: "https://github.com/christoph-teichmeister/gcal-bot"

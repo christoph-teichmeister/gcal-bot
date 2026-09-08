@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1
+
+- Fixed a burst of reminders: if several reminder windows had already
+  elapsed by the first poll after `/onboard` (e.g. an event only 26 minutes
+  away with `7d/1d/1h/30m` configured), all of them fired at once instead of
+  just the one actually due
+
 ## 1.4.0
 
 - Packaged as a Home Assistant Supervisor add-on (local add-on, no manual
