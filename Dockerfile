@@ -1,12 +1,15 @@
-FROM python:3.12-slim
+ARG BUILD_FROM
+FROM $BUILD_FROM
+
+RUN apk add --no-cache python3 py3-pip
 
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
 COPY bot ./bot
+COPY run.sh /
+RUN chmod a+x /run.sh
 
-VOLUME ["/data"]
-
-CMD ["python", "-m", "bot.main"]
+CMD [ "/run.sh" ]

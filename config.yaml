@@ -1,0 +1,25 @@
+name: "GCal Bot"
+version: "1.0.0"
+slug: "gcal_bot"
+description: "Telegram-Bot: postet Google-Calendar-Termine als Reminder in eine Telegram-Gruppe, mit Zusage/Absage/Vielleicht-Buttons"
+url: "https://github.com/christoph-teichmeister/gcal-bot"
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+init: false
+options:
+  bot_token: ""
+  chat_id: ""
+  ical_url: ""
+  reminder_hours_before: 24
+  poll_interval_minutes: 15
+  lookahead_days: 30
+schema:
+  bot_token: str
+  chat_id: str
+  ical_url: url
+  reminder_hours_before: float
+  poll_interval_minutes: float
+  lookahead_days: int
