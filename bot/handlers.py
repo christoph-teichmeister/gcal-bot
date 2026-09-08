@@ -44,7 +44,8 @@ async def handle_rsvp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     query = update.callback_query
     storage: Storage = context.bot_data["storage"]
 
-    _, occurrence_id, status = query.data.split(":", 2)
+    _, rest = query.data.split(":", 1)
+    occurrence_id, status = rest.rsplit(":", 1)
     user = query.from_user
     user_name = user.full_name or user.username or str(user.id)
 
