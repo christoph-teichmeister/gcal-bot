@@ -1,57 +1,60 @@
 # gcal-bot
 
-Telegram-Bot, der Termine aus einem Google-Calendar-iCal-Feed liest und
-`reminder_hours_before` Stunden vor Start als Erinnerung in eine Telegram-Gruppe
-postet — mit Zusage/Absage/Vielleicht-Buttons (RSVP), Teilnehmerliste live in
-der Nachricht. Läuft als **Home Assistant Add-on** (Supervisor), kein separates
-Docker-Gefrickel nötig.
+Telegram bot that reads events from a Google Calendar iCal feed and posts a
+reminder to a Telegram group `reminder_hours_before` hours before an event
+starts — with Yes/No/Maybe RSVP buttons, live participant list in the message.
+Runs as a **Home Assistant add-on** (Supervisor), no manual Docker juggling
+needed.
 
 ## Commands
 
-- `/naechste` — zeigt die nächsten anstehenden Termine (on-demand, ohne auf den
-  nächsten Poll zu warten)
-- `/status` — letzter Kalender-Check, Konfiguration, Anzahl anstehender bereits
-  geposteter Termine
+- `/next` — show the next upcoming events on demand, without waiting for the
+  next poll
+- `/status` — last calendar check, current config, number of upcoming events
+  already posted
 
-Bei BotFather via `/setcommands` eintragen, damit sie im "/"-Menü erscheinen:
+Register them with BotFather via `/setcommands` so they show up in the "/"
+menu:
 ```
-naechste - Nächste Termine anzeigen
-status - Bot-Status anzeigen
+next - Show upcoming events
+status - Show bot status
 ```
 
 ## Setup
 
-### 1. Telegram-Bot anlegen
-1. Mit [@BotFather](https://t.me/BotFather) chatten, `/newbot`, Token notieren.
-2. Bot zur Gruppe hinzufügen, Admin-Recht "Nachrichten senden" geben.
-3. Chat-ID ermitteln: Bot kurz etwas in der Gruppe schreiben lassen, dann
-   `https://api.telegram.org/bot<TOKEN>/getUpdates` aufrufen, `chat.id` (negative Zahl).
+### 1. Create a Telegram bot
+1. Chat with [@BotFather](https://t.me/BotFather), `/newbot`, note the token.
+2. Add the bot to the group, give it the "send messages" admin right.
+3. Get the chat ID: have the bot see any message in the group, then call
+   `https://api.telegram.org/bot<TOKEN>/getUpdates`, read `chat.id` (a negative
+   number).
 
-### 2. Google-Calendar-Feed
-Google Calendar → Einstellungen → gewünschter Kalender → "Geheime Adresse im
-iCal-Format" kopieren. (Geheim halten — jeder mit dem Link sieht alle Termine.)
+### 2. Google Calendar feed
+Google Calendar → Settings → the calendar you want → "Secret address in iCal
+format" → copy it. (Keep it secret — anyone with the link sees every event.)
 
-## Als Home Assistant Add-on installieren
+## Install as a Home Assistant add-on
 
-Supervisor erkennt jeden Ordner unter `/addons/` auf dem HAOS-Host automatisch
-als lokales Add-on — kein Repository/Store-Eintrag nötig.
+Supervisor auto-detects any folder under `/addons/` on the HAOS host as a
+local add-on — no repository/store entry needed.
 
 ```bash
-# lokal: Repo auf den Pi kopieren
+# locally: copy the repo to the Pi
 scp -r . homeassistant:/addons/gcal-bot
 ```
 
-Dann in der HA-UI:
-1. **Einstellungen → Add-ons → Add-on Store → oben rechts "⋮" → Store neu laden**
-2. Add-on erscheint unter "Lokale Add-ons" → installieren
-3. Tab **Konfiguration**: `bot_token`, `chat_id`, `ical_url` (+ optional
-   `reminder_hours_before`, `poll_interval_minutes`, `lookahead_days`) eintragen
-4. Tab **Info** → Start, "Beim Systemstart starten" aktivieren
+Then in the HA UI:
+1. **Settings → Add-ons → Add-on Store → top-right "⋮" → Reload the store**
+2. The add-on shows up under "Local add-ons" → install it
+3. **Configuration** tab: fill in `bot_token`, `chat_id`, `ical_url` (plus
+   optionally `reminder_hours_before`, `poll_interval_minutes`,
+   `lookahead_days`)
+4. **Info** tab → Start, enable "Start on boot"
 
-Logs direkt im Add-on-Tab "Log" einsehbar. Nach Codeänderung: erneut `scp`, dann
-im Add-on-Tab "Neu erstellen" (Rebuild).
+Logs are visible right in the add-on's "Log" tab. After a code change: `scp`
+again, then hit "Rebuild" in the add-on tab.
 
-## Lokal testen (ohne HA)
+## Test locally (without HA)
 
 ```bash
 python -m venv .venv && source .venv/bin/activate

@@ -1,7 +1,7 @@
 name: "GCal Bot"
 version: "1.0.0"
 slug: "gcal_bot"
-description: "Telegram-Bot: postet Google-Calendar-Termine als Reminder in eine Telegram-Gruppe, mit Zusage/Absage/Vielleicht-Buttons"
+description: "Telegram bot: posts Google Calendar events as reminders in a Telegram group, with Yes/No/Maybe RSVP buttons"
 url: "https://github.com/christoph-teichmeister/gcal-bot"
 arch:
   - aarch64

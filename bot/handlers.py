@@ -4,9 +4,9 @@ from telegram.ext import ContextTypes
 from bot.storage import Storage
 
 STATUS_LABELS = {
-    "yes": "✅ Zusage",
-    "no": "❌ Absage",
-    "maybe": "🤔 Vielleicht",
+    "yes": "✅ Yes",
+    "no": "❌ No",
+    "maybe": "🤔 Maybe",
 }
 
 
@@ -14,9 +14,9 @@ def build_keyboard(occurrence_id: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("✅ Zusage", callback_data=f"rsvp:{occurrence_id}:yes"),
-                InlineKeyboardButton("❌ Absage", callback_data=f"rsvp:{occurrence_id}:no"),
-                InlineKeyboardButton("🤔 Vielleicht", callback_data=f"rsvp:{occurrence_id}:maybe"),
+                InlineKeyboardButton("✅ Yes", callback_data=f"rsvp:{occurrence_id}:yes"),
+                InlineKeyboardButton("❌ No", callback_data=f"rsvp:{occurrence_id}:no"),
+                InlineKeyboardButton("🤔 Maybe", callback_data=f"rsvp:{occurrence_id}:maybe"),
             ]
         ]
     )
@@ -49,7 +49,7 @@ async def handle_rsvp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     user_name = user.full_name or user.username or str(user.id)
 
     storage.set_rsvp(occurrence_id, user.id, user_name, status)
-    await query.answer(f"Gespeichert: {STATUS_LABELS[status]}")
+    await query.answer(f"Saved: {STATUS_LABELS[status]}")
 
     event = storage.get_event(occurrence_id)
     if event is None:

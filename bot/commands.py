@@ -10,23 +10,23 @@ from bot.storage import Storage
 MAX_UPCOMING_SHOWN = 5
 
 
-async def cmd_naechste(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def cmd_next(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     config: Config = context.bot_data["config"]
 
     try:
         occurrences = fetch_occurrences(config.ical_url, config.lookahead_days)
     except Exception:
-        await update.effective_message.reply_text("Konnte Kalender gerade nicht laden, versuch's später nochmal.")
+        await update.effective_message.reply_text("Couldn't load the calendar right now, try again later.")
         return
 
     now = datetime.now(timezone.utc)
     upcoming = sorted((o for o in occurrences if o.start >= now), key=lambda o: o.start)[:MAX_UPCOMING_SHOWN]
 
     if not upcoming:
-        await update.effective_message.reply_text(f"Keine Termine in den nächsten {config.lookahead_days} Tagen.")
+        await update.effective_message.reply_text(f"No events in the next {config.lookahead_days} days.")
         return
 
-    lines = ["🎲 *Nächste Termine:*", ""]
+    lines = ["🎲 *Upcoming events:*", ""]
     for occurrence in upcoming:
         start_text = occurrence.start.astimezone().strftime("%a, %d.%m.%Y %H:%M")
         line = f"🕒 {start_text} – {occurrence.title}"
@@ -44,15 +44,15 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     now = int(datetime.now(timezone.utc).timestamp())
     upcoming_count = storage.count_upcoming(now)
     last_poll = context.bot_data.get("last_poll")
-    last_poll_text = last_poll.astimezone().strftime("%a, %d.%m.%Y %H:%M:%S") if last_poll else "noch nie"
+    last_poll_text = last_poll.astimezone().strftime("%a, %d.%m.%Y %H:%M:%S") if last_poll else "never yet"
 
     lines = [
-        "🤖 *GCal Bot Status*",
+        "🤖 *GCal Bot status*",
         "",
-        f"Letzter Kalender-Check: {last_poll_text}",
-        f"Check-Intervall: alle {config.poll_interval_minutes:g} Minuten",
-        f"Erinnerung: {config.reminder_hours_before:g} Std vor Termin",
-        f"Vorausschau: {config.lookahead_days} Tage",
-        f"Bereits gepostete, anstehende Termine: {upcoming_count}",
+        f"Last calendar check: {last_poll_text}",
+        f"Check interval: every {config.poll_interval_minutes:g} minutes",
+        f"Reminder: {config.reminder_hours_before:g} hours before event",
+        f"Lookahead: {config.lookahead_days} days",
+        f"Upcoming events already posted: {upcoming_count}",
     ]
     await update.effective_message.reply_text("\n".join(lines), parse_mode="Markdown")
