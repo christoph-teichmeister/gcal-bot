@@ -82,6 +82,14 @@ class Storage:
                 )
                 """
             )
+            self._conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS tokens (
+                    token TEXT PRIMARY KEY,
+                    occurrence_id TEXT NOT NULL
+                )
+                """
+            )
 
     def upsert_event(self, uid: str, title: str, start_ts: int, location: str) -> None:
         with self._conn:
@@ -178,6 +186,17 @@ class Storage:
     def get_onboarded_chat_ids(self) -> list[int]:
         with closing(self._conn.execute("SELECT DISTINCT chat_id FROM calendars")) as cur:
             return [row[0] for row in cur.fetchall()]
+
+    def save_token(self, token: str, occurrence_id: str) -> None:
+        with self._conn:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO tokens (token, occurrence_id) VALUES (?, ?)", (token, occurrence_id)
+            )
+
+    def resolve_token(self, token: str) -> str | None:
+        with closing(self._conn.execute("SELECT occurrence_id FROM tokens WHERE token = ?", (token,))) as cur:
+            row = cur.fetchone()
+            return row[0] if row else None
 
     def delete_events_older_than(self, ts: int) -> None:
         with self._conn:

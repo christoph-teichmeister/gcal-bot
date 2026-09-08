@@ -1,3 +1,4 @@
+import hashlib
 from datetime import datetime, timezone
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -12,14 +13,22 @@ STATUS_LABELS = {
     "maybe": "🤔 Maybe",
 }
 
+EXPIRED_TEXT = "This button has expired, run /next again to get a fresh list."
 
-def build_keyboard(occurrence_id: str) -> InlineKeyboardMarkup:
+
+def occurrence_token(occurrence_id: str) -> str:
+    return hashlib.sha1(occurrence_id.encode()).hexdigest()[:12]
+
+
+def build_keyboard(occurrence_id: str, storage: Storage) -> InlineKeyboardMarkup:
+    token = occurrence_token(occurrence_id)
+    storage.save_token(token, occurrence_id)
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("✅ Yes", callback_data=f"rsvp:{occurrence_id}:yes"),
-                InlineKeyboardButton("❌ No", callback_data=f"rsvp:{occurrence_id}:no"),
-                InlineKeyboardButton("🤔 Maybe", callback_data=f"rsvp:{occurrence_id}:maybe"),
+                InlineKeyboardButton("✅ Yes", callback_data=f"rsvp:{token}:yes"),
+                InlineKeyboardButton("❌ No", callback_data=f"rsvp:{token}:no"),
+                InlineKeyboardButton("🤔 Maybe", callback_data=f"rsvp:{token}:maybe"),
             ],
             [InlineKeyboardButton("📋 Upcoming events", callback_data="show_list")],
         ]
@@ -52,7 +61,7 @@ async def refresh_event_messages(context: ContextTypes.DEFAULT_TYPE, storage: St
 
     start_text = datetime.fromtimestamp(start_ts, tz=timezone.utc).astimezone().strftime("%a, %d.%m.%Y %H:%M")
     text = build_message_text(title, start_text, location, storage, occurrence_id)
-    keyboard = build_keyboard(occurrence_id)
+    keyboard = build_keyboard(occurrence_id, storage)
 
     for chat_id, message_id in storage.get_messages(occurrence_id):
         try:
@@ -72,8 +81,12 @@ async def handle_rsvp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     query = update.callback_query
     storage: Storage = context.bot_data["storage"]
 
-    _, rest = query.data.split(":", 1)
-    occurrence_id, status = rest.rsplit(":", 1)
+    _, token, status = query.data.split(":", 2)
+    occurrence_id = storage.resolve_token(token)
+    if occurrence_id is None:
+        await query.answer(EXPIRED_TEXT, show_alert=True)
+        return
+
     user = query.from_user
     user_name = user.full_name or user.username or str(user.id)
 

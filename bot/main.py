@@ -67,7 +67,7 @@ async def poll_chat(context: ContextTypes.DEFAULT_TYPE, config: Config, storage:
                 chat_id=chat_id,
                 text=text,
                 parse_mode="Markdown",
-                reply_markup=build_keyboard(occurrence.occurrence_id),
+                reply_markup=build_keyboard(occurrence.occurrence_id, storage),
             )
             storage.add_message(occurrence.occurrence_id, chat_id, message.message_id)
             storage.mark_reminded(occurrence.occurrence_id, offset_minutes)

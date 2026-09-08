@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.2
+
+- Fixed RSVP/list buttons potentially breaking on calendars with long event
+  UIDs (common with Outlook/Exchange feeds): `callback_data` now uses a
+  short hash token instead of the raw event id, staying well under
+  Telegram's 64-byte limit
+- Fixed a double `answer()` call on expired list buttons
+- `/remind` now rejects input that parses to an empty schedule instead of
+  silently falling back to the default without telling you
+
 ## 1.4.1
 
 - Fixed a burst of reminders: if several reminder windows had already

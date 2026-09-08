@@ -7,7 +7,7 @@ from telegram.ext import ContextTypes
 from bot.calendar_source import InvalidIcalFeedError, Occurrence, fetch_occurrences
 from bot.config import Config
 from bot.durations import format_minutes, parse_durations_to_minutes
-from bot.handlers import build_keyboard, build_message_text
+from bot.handlers import build_keyboard, build_message_text, occurrence_token
 from bot.storage import Storage
 
 MAX_UPCOMING_SHOWN = 10
@@ -40,10 +40,13 @@ def _label(occurrence: Occurrence) -> str:
     return f"{start_text} – {occurrence.title}"[:64]
 
 
-def _build_list_keyboard(occurrences: list[Occurrence]) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(_label(o), callback_data=f"show_event:{o.occurrence_id}")] for o in occurrences]
-    )
+def _build_list_keyboard(occurrences: list[Occurrence], storage: Storage) -> InlineKeyboardMarkup:
+    rows = []
+    for o in occurrences:
+        token = occurrence_token(o.occurrence_id)
+        storage.save_token(token, o.occurrence_id)
+        rows.append([InlineKeyboardButton(_label(o), callback_data=f"show_event:{token}")])
+    return InlineKeyboardMarkup(rows)
 
 
 def _fetch_occurrences_for_chat(config: Config, storage: Storage, chat_id: int) -> list[Occurrence]:
@@ -124,19 +127,23 @@ async def cmd_next(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     await update.effective_message.reply_text(
-        LIST_TEXT, parse_mode="Markdown", reply_markup=_build_list_keyboard(upcoming)
+        LIST_TEXT, parse_mode="Markdown", reply_markup=_build_list_keyboard(upcoming, storage)
     )
 
 
 async def handle_show_event(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
-    await query.answer()
 
     config: Config = context.bot_data["config"]
     storage: Storage = context.bot_data["storage"]
     chat_id = query.message.chat_id
-    _, occurrence_id = query.data.split(":", 1)
+    _, token = query.data.split(":", 1)
+    occurrence_id = storage.resolve_token(token)
+    if occurrence_id is None:
+        await query.answer(EXPIRED_TEXT, show_alert=True)
+        return
 
+    await query.answer()
     event = storage.get_event(occurrence_id)
     if event is None:
         try:
@@ -161,7 +168,7 @@ async def handle_show_event(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         message_id=message_id,
         text=text,
         parse_mode="Markdown",
-        reply_markup=build_keyboard(occurrence_id),
+        reply_markup=build_keyboard(occurrence_id, storage),
     )
     storage.add_message(occurrence_id, chat_id, message_id)
 
@@ -195,7 +202,7 @@ async def handle_show_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             message_id=message_id,
             text=LIST_TEXT,
             parse_mode="Markdown",
-            reply_markup=_build_list_keyboard(upcoming),
+            reply_markup=_build_list_keyboard(upcoming, storage),
         )
     except BadRequest as error:
         if "not modified" not in str(error).lower():
@@ -217,11 +224,13 @@ async def cmd_remind(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
     if len(args) == 1 and args[0].lower() == "reset":
         storage.clear_reminder_offsets(chat_id)
-        await update.effective_message.reply_text("Reminders reset to the add-on's default configuration.")
+        await update.effective_message.reply_text("Reminders reset to the default schedule (24h before each event).")
         return
 
     try:
         offsets = parse_durations_to_minutes(" ".join(args))
+        if not offsets:
+            raise ValueError(" ".join(args))
     except ValueError as error:
         await update.effective_message.reply_text(
             f"Couldn't parse `{error}`. Use a number plus d/h/m, e.g. `/remind 24h 1h 15m`.",
