@@ -1,0 +1,4 @@
+python-telegram-bot[job-queue]==21.6
+icalendar==6.1.0
+recurring-ical-events==3.4.0
+requests==2.32.3
