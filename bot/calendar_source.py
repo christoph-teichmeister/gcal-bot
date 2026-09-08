@@ -24,7 +24,7 @@ def fetch_occurrences(ical_url: str, lookahead_days: int) -> list[Occurrence]:
 
     if not response.content.lstrip().startswith(b"BEGIN:VCALENDAR"):
         raise InvalidIcalFeedError(
-            f"ICAL_URL did not return an iCal feed (got content-type "
+            f"This URL did not return an iCal feed (got content-type "
             f"'{response.headers.get('Content-Type', '?')}' instead). Make sure it's the "
             f"'Secret address in iCal format' from your calendar's settings, ending in .ics."
         )

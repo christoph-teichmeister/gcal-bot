@@ -72,6 +72,16 @@ class Storage:
                 )
                 """
             )
+            self._conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS calendars (
+                    chat_id INTEGER NOT NULL,
+                    calendar_id TEXT NOT NULL DEFAULT 'default',
+                    ical_url TEXT NOT NULL,
+                    PRIMARY KEY (chat_id, calendar_id)
+                )
+                """
+            )
 
     def upsert_event(self, uid: str, title: str, start_ts: int, location: str) -> None:
         with self._conn:
@@ -151,6 +161,23 @@ class Storage:
     def clear_reminder_offsets(self, chat_id: int) -> None:
         with self._conn:
             self._conn.execute("DELETE FROM settings WHERE chat_id = ?", (chat_id,))
+
+    def upsert_calendar(self, chat_id: int, ical_url: str, calendar_id: str = "default") -> None:
+        with self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO calendars (chat_id, calendar_id, ical_url) VALUES (?, ?, ?)",
+                (chat_id, calendar_id, ical_url),
+            )
+
+    def get_calendars(self, chat_id: int) -> list[tuple[str, str]]:
+        with closing(
+            self._conn.execute("SELECT calendar_id, ical_url FROM calendars WHERE chat_id = ?", (chat_id,))
+        ) as cur:
+            return cur.fetchall()
+
+    def get_onboarded_chat_ids(self) -> list[int]:
+        with closing(self._conn.execute("SELECT DISTINCT chat_id FROM calendars")) as cur:
+            return [row[0] for row in cur.fetchall()]
 
     def delete_events_older_than(self, ts: int) -> None:
         with self._conn:

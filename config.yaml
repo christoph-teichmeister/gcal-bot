@@ -1,7 +1,7 @@
 name: "GCal Bot"
 version: "1.0.0"
 slug: "gcal_bot"
-description: "Telegram bot: posts Google Calendar events as reminders in a Telegram group, with Yes/No/Maybe RSVP buttons"
+description: "Telegram bot: posts Google Calendar events as reminders in any Telegram group that runs /onboard, with Yes/No/Maybe RSVP buttons"
 url: "https://github.com/christoph-teichmeister/gcal-bot"
 arch:
   - aarch64
@@ -11,15 +11,11 @@ arch:
 init: false
 options:
   bot_token: ""
-  chat_id: ""
-  ical_url: ""
   reminder_offsets: "24h"
   poll_interval_minutes: 15
   lookahead_days: 30
 schema:
   bot_token: str
-  chat_id: str
-  ical_url: url
   reminder_offsets: str
   poll_interval_minutes: float
   lookahead_days: int

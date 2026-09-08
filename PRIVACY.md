@@ -1,12 +1,15 @@
 # Privacy Policy — gcal-bot
 
-This bot is a private hobby project for a closed Telegram group, not a
-commercial service.
+This bot is a private hobby project, not a commercial service. It can serve
+several closed Telegram groups, each connected to its own calendar via
+`/onboard`.
 
 ## What data is processed
 
-- **Calendar data**: title, time, and location of events from the configured
-  Google Calendar iCal feed.
+- **Calendar data**: title, time, and location of events from the calendar
+  iCal feed a group connected via `/onboard`.
+- **Calendar URL**: the secret iCal URL a group provided via `/onboard` is
+  stored so the bot can keep polling it.
 - **Telegram user data**: name (or username) and Telegram user ID of people
   who click Yes/No/Maybe.
 

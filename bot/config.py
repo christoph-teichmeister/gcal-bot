@@ -6,8 +6,6 @@ from bot.durations import parse_durations_to_minutes
 class Config:
     def __init__(self) -> None:
         self.bot_token = self._require("BOT_TOKEN")
-        self.chat_id = int(self._require("CHAT_ID"))
-        self.ical_url = self._require("ICAL_URL")
         self.default_reminder_offsets_minutes = parse_durations_to_minutes(
             os.environ.get("REMINDER_OFFSETS", "24h")
         )
