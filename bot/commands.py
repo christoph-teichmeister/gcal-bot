@@ -4,7 +4,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
-from bot.calendar_source import InvalidIcalFeedError, Occurrence, fetch_occurrences
+from bot.calendar_source import InvalidIcalFeedError, Occurrence, fetch_occurrences, scope_occurrence_id
 from bot.config import Config
 from bot.durations import format_minutes, parse_durations_to_minutes
 from bot.handlers import build_keyboard, build_message_text, occurrence_token
@@ -40,11 +40,12 @@ def _label(occurrence: Occurrence) -> str:
     return f"{start_text} – {occurrence.title}"[:64]
 
 
-def _build_list_keyboard(occurrences: list[Occurrence], storage: Storage) -> InlineKeyboardMarkup:
+def _build_list_keyboard(occurrences: list[Occurrence], storage: Storage, chat_id: int) -> InlineKeyboardMarkup:
     rows = []
     for o in occurrences:
-        token = occurrence_token(o.occurrence_id)
-        storage.save_token(token, o.occurrence_id)
+        scoped_id = scope_occurrence_id(chat_id, o.occurrence_id)
+        token = occurrence_token(scoped_id)
+        storage.save_token(token, scoped_id)
         rows.append([InlineKeyboardButton(_label(o), callback_data=f"show_event:{token}")])
     return InlineKeyboardMarkup(rows)
 
@@ -127,7 +128,7 @@ async def cmd_next(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     await update.effective_message.reply_text(
-        LIST_TEXT, parse_mode="Markdown", reply_markup=_build_list_keyboard(upcoming, storage)
+        LIST_TEXT, parse_mode="Markdown", reply_markup=_build_list_keyboard(upcoming, storage, update.effective_chat.id)
     )
 
 
@@ -151,11 +152,11 @@ async def handle_show_event(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         except Exception:
             await query.edit_message_text("Couldn't load the calendar right now, try again later.")
             return
-        match = next((o for o in occurrences if o.occurrence_id == occurrence_id), None)
+        match = next((o for o in occurrences if scope_occurrence_id(chat_id, o.occurrence_id) == occurrence_id), None)
         if match is None:
             await query.edit_message_text("This event is no longer available.")
             return
-        storage.upsert_event(match.occurrence_id, match.title, int(match.start.timestamp()), match.location)
+        storage.upsert_event(occurrence_id, match.title, int(match.start.timestamp()), match.location)
         event = storage.get_event(occurrence_id)
 
     _, title, start_ts, location = event
@@ -202,7 +203,7 @@ async def handle_show_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             message_id=message_id,
             text=LIST_TEXT,
             parse_mode="Markdown",
-            reply_markup=_build_list_keyboard(upcoming, storage),
+            reply_markup=_build_list_keyboard(upcoming, storage, chat_id),
         )
     except BadRequest as error:
         if "not modified" not in str(error).lower():

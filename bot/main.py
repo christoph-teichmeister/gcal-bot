@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from telegram import Update
 from telegram.ext import Application, CallbackQueryHandler, ChatMemberHandler, CommandHandler, ContextTypes
 
-from bot.calendar_source import fetch_occurrences
+from bot.calendar_source import fetch_occurrences, scope_occurrence_id
 from bot.commands import (
     cmd_next,
     cmd_onboard,
@@ -36,16 +36,18 @@ async def poll_chat(context: ContextTypes.DEFAULT_TYPE, config: Config, storage:
         if occurrence.start < now:
             continue
 
+        scoped_id = scope_occurrence_id(chat_id, occurrence.occurrence_id)
+
         for offset_minutes in offsets:
             window_start = occurrence.start - timedelta(minutes=offset_minutes)
             if window_start > now:
                 continue
-            if storage.is_reminded(occurrence.occurrence_id, offset_minutes):
+            if storage.is_reminded(scoped_id, offset_minutes):
                 continue
 
             stale_after = timedelta(minutes=config.poll_interval_minutes * 2)
             if now - window_start > stale_after:
-                storage.mark_reminded(occurrence.occurrence_id, offset_minutes)
+                storage.mark_reminded(scoped_id, offset_minutes)
                 logger.info(
                     "Skipped stale %s reminder for %s in chat %s (window opened %s ago)",
                     format_minutes(offset_minutes),
@@ -55,22 +57,18 @@ async def poll_chat(context: ContextTypes.DEFAULT_TYPE, config: Config, storage:
                 )
                 continue
 
-            storage.upsert_event(
-                occurrence.occurrence_id, occurrence.title, int(occurrence.start.timestamp()), occurrence.location
-            )
+            storage.upsert_event(scoped_id, occurrence.title, int(occurrence.start.timestamp()), occurrence.location)
             start_text = occurrence.start.astimezone().strftime("%a, %d.%m.%Y %H:%M")
             header = f"⏰ *{format_minutes(offset_minutes)} reminder*\n"
-            text = header + build_message_text(
-                occurrence.title, start_text, occurrence.location, storage, occurrence.occurrence_id
-            )
+            text = header + build_message_text(occurrence.title, start_text, occurrence.location, storage, scoped_id)
             message = await context.bot.send_message(
                 chat_id=chat_id,
                 text=text,
                 parse_mode="Markdown",
-                reply_markup=build_keyboard(occurrence.occurrence_id, storage),
+                reply_markup=build_keyboard(scoped_id, storage),
             )
-            storage.add_message(occurrence.occurrence_id, chat_id, message.message_id)
-            storage.mark_reminded(occurrence.occurrence_id, offset_minutes)
+            storage.add_message(scoped_id, chat_id, message.message_id)
+            storage.mark_reminded(scoped_id, offset_minutes)
             logger.info("Posted %s reminder for %s in chat %s", format_minutes(offset_minutes), occurrence.title, chat_id)
 
     cutoff = int((now - timedelta(days=1)).timestamp())

@@ -10,6 +10,10 @@ class InvalidIcalFeedError(Exception):
     pass
 
 
+def scope_occurrence_id(chat_id: int, occurrence_id: str) -> str:
+    return f"{chat_id}:{occurrence_id}"
+
+
 @dataclass
 class Occurrence:
     occurrence_id: str

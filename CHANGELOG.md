@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.5.0
+
+- Fixed cross-group data leak: events, reminders, and RSVPs are now scoped
+  per chat, not just per calendar-UID. Previously, two groups subscribed to
+  the same or an overlapping calendar (e.g. a public holiday calendar) could
+  suppress each other's reminders and see each other's RSVPs for what looked
+  like "the same" event. Storage keys changed shape to include the chat, so
+  any event whose reminder window is still open at upgrade time may get one
+  extra reminder resent once (old RSVPs on it are also not carried over) —
+  a one-time side effect, not an ongoing issue.
+
 ## 1.4.2
 
 - Fixed RSVP/list buttons potentially breaking on calendars with long event
