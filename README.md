@@ -1,5 +1,7 @@
 # gcal-bot
 
+<img src="logo.png" width="128" height="128" alt="GCal Bot logo">
+
 Telegram bot that reads events from a Google Calendar iCal feed and posts
 reminders to a Telegram group before each event starts — with Yes/No/Maybe
 RSVP buttons, live participant list in the message. Supports multiple
