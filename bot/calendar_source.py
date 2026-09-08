@@ -6,6 +6,10 @@ import recurring_ical_events
 import requests
 
 
+class InvalidIcalFeedError(Exception):
+    pass
+
+
 @dataclass
 class Occurrence:
     occurrence_id: str
@@ -17,6 +21,14 @@ class Occurrence:
 def fetch_occurrences(ical_url: str, lookahead_days: int) -> list[Occurrence]:
     response = requests.get(ical_url, timeout=30)
     response.raise_for_status()
+
+    if not response.content.lstrip().startswith(b"BEGIN:VCALENDAR"):
+        raise InvalidIcalFeedError(
+            f"ICAL_URL did not return an iCal feed (got content-type "
+            f"'{response.headers.get('Content-Type', '?')}' instead). Make sure it's the "
+            f"'Secret address in iCal format' from your calendar's settings, ending in .ics."
+        )
+
     calendar = icalendar.Calendar.from_ical(response.content)
 
     now = datetime.now(timezone.utc)
@@ -36,7 +48,7 @@ def fetch_occurrences(ical_url: str, lookahead_days: int) -> list[Occurrence]:
         occurrences.append(
             Occurrence(
                 occurrence_id=occurrence_id,
-                title=str(event.get("SUMMARY", "(ohne Titel)")),
+                title=str(event.get("SUMMARY", "(no title)")),
                 start=start,
                 location=str(event.get("LOCATION", "")),
             )
