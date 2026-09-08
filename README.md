@@ -1,22 +1,24 @@
 # gcal-bot
 
-Telegram bot that reads events from a Google Calendar iCal feed and posts a
-reminder to a Telegram group `reminder_hours_before` hours before an event
-starts — with Yes/No/Maybe RSVP buttons, live participant list in the message.
-Runs as a **Home Assistant add-on** (Supervisor), no manual Docker juggling
-needed.
+Telegram bot that reads events from a Google Calendar iCal feed and posts
+reminders to a Telegram group before each event starts — with Yes/No/Maybe
+RSVP buttons, live participant list in the message. Supports multiple
+reminders per event (e.g. 24h, 1h, 15m before). Runs as a **Home Assistant
+add-on** (Supervisor), no manual Docker juggling needed.
 
 ## Commands
 
-- `/next` — show the next upcoming events on demand, without waiting for the
-  next poll
+- `/next` — list upcoming events; tap one to see its details and set your RSVP
+- `/remind` — show the reminder schedule for this group; `/remind 24h 1h 15m`
+  changes it, `/remind reset` goes back to the add-on's default
 - `/status` — last calendar check, current config, number of upcoming events
-  already posted
+  tracked
 
 Register them with BotFather via `/setcommands` so they show up in the "/"
 menu:
 ```
 next - Show upcoming events
+remind - View or change the reminder schedule
 status - Show bot status
 ```
 
@@ -47,8 +49,10 @@ Then in the HA UI:
 1. **Settings → Add-ons → Add-on Store → top-right "⋮" → Reload the store**
 2. The add-on shows up under "Local add-ons" → install it
 3. **Configuration** tab: fill in `bot_token`, `chat_id`, `ical_url` (plus
-   optionally `reminder_hours_before`, `poll_interval_minutes`,
-   `lookahead_days`)
+   optionally `reminder_offsets` — comma/space-separated durations like
+   `24h,1h,15m` — `poll_interval_minutes`, `lookahead_days`). The group can
+   override `reminder_offsets` at runtime with `/remind`, without touching this
+   config.
 4. **Info** tab → Start, enable "Start on boot"
 
 Logs are visible right in the add-on's "Log" tab. After a code change: `scp`

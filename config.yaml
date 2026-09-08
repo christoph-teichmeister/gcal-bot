@@ -13,13 +13,13 @@ options:
   bot_token: ""
   chat_id: ""
   ical_url: ""
-  reminder_hours_before: 24
+  reminder_offsets: "24h"
   poll_interval_minutes: 15
   lookahead_days: 30
 schema:
   bot_token: str
   chat_id: str
   ical_url: url
-  reminder_hours_before: float
+  reminder_offsets: str
   poll_interval_minutes: float
   lookahead_days: int

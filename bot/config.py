@@ -1,12 +1,16 @@
 import os
 
+from bot.durations import parse_durations_to_minutes
+
 
 class Config:
     def __init__(self) -> None:
         self.bot_token = self._require("BOT_TOKEN")
         self.chat_id = int(self._require("CHAT_ID"))
         self.ical_url = self._require("ICAL_URL")
-        self.reminder_hours_before = float(os.environ.get("REMINDER_HOURS_BEFORE", "24"))
+        self.default_reminder_offsets_minutes = parse_durations_to_minutes(
+            os.environ.get("REMINDER_OFFSETS", "24h")
+        )
         self.poll_interval_minutes = float(os.environ.get("POLL_INTERVAL_MINUTES", "15"))
         self.lookahead_days = int(os.environ.get("LOOKAHEAD_DAYS", "30"))
         self.db_path = os.environ.get("DB_PATH", "/data/calendar-bot.sqlite3")

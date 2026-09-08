@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from contextlib import closing
 
@@ -16,6 +17,11 @@ class Storage:
                 self._conn.execute("DROP TABLE events")
                 self._conn.execute("DROP TABLE IF EXISTS rsvps")
 
+        reminder_columns = {row[1] for row in self._conn.execute("PRAGMA table_info(reminders)")}
+        if reminder_columns and "offset_minutes" not in reminder_columns:
+            with self._conn:
+                self._conn.execute("DROP TABLE reminders")
+
     def _init_schema(self) -> None:
         with self._conn:
             self._conn.execute(
@@ -31,7 +37,9 @@ class Storage:
             self._conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS reminders (
-                    uid TEXT PRIMARY KEY
+                    uid TEXT NOT NULL,
+                    offset_minutes INTEGER NOT NULL,
+                    PRIMARY KEY (uid, offset_minutes)
                 )
                 """
             )
@@ -56,6 +64,14 @@ class Storage:
                 )
                 """
             )
+            self._conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS settings (
+                    chat_id INTEGER PRIMARY KEY,
+                    reminder_offsets_json TEXT NOT NULL
+                )
+                """
+            )
 
     def upsert_event(self, uid: str, title: str, start_ts: int, location: str) -> None:
         with self._conn:
@@ -70,19 +86,31 @@ class Storage:
         ) as cur:
             return cur.fetchone()
 
-    def is_reminded(self, uid: str) -> bool:
-        with closing(self._conn.execute("SELECT 1 FROM reminders WHERE uid = ?", (uid,))) as cur:
+    def is_reminded(self, uid: str, offset_minutes: int) -> bool:
+        with closing(
+            self._conn.execute(
+                "SELECT 1 FROM reminders WHERE uid = ? AND offset_minutes = ?", (uid, offset_minutes)
+            )
+        ) as cur:
             return cur.fetchone() is not None
 
-    def mark_reminded(self, uid: str) -> None:
+    def mark_reminded(self, uid: str, offset_minutes: int) -> None:
         with self._conn:
-            self._conn.execute("INSERT OR IGNORE INTO reminders (uid) VALUES (?)", (uid,))
+            self._conn.execute(
+                "INSERT OR IGNORE INTO reminders (uid, offset_minutes) VALUES (?, ?)", (uid, offset_minutes)
+            )
 
     def add_message(self, uid: str, chat_id: int, message_id: int) -> None:
         with self._conn:
             self._conn.execute(
                 "INSERT OR IGNORE INTO messages (uid, chat_id, message_id) VALUES (?, ?, ?)",
                 (uid, chat_id, message_id),
+            )
+
+    def remove_message(self, chat_id: int, message_id: int) -> None:
+        with self._conn:
+            self._conn.execute(
+                "DELETE FROM messages WHERE chat_id = ? AND message_id = ?", (chat_id, message_id)
             )
 
     def get_messages(self, uid: str) -> list[tuple[int, int]]:
@@ -105,6 +133,24 @@ class Storage:
     def count_upcoming(self, ts: int) -> int:
         with closing(self._conn.execute("SELECT COUNT(*) FROM events WHERE start_ts >= ?", (ts,))) as cur:
             return cur.fetchone()[0]
+
+    def get_reminder_offsets(self, chat_id: int) -> list[int] | None:
+        with closing(
+            self._conn.execute("SELECT reminder_offsets_json FROM settings WHERE chat_id = ?", (chat_id,))
+        ) as cur:
+            row = cur.fetchone()
+            return json.loads(row[0]) if row else None
+
+    def set_reminder_offsets(self, chat_id: int, offsets_minutes: list[int]) -> None:
+        with self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO settings (chat_id, reminder_offsets_json) VALUES (?, ?)",
+                (chat_id, json.dumps(offsets_minutes)),
+            )
+
+    def clear_reminder_offsets(self, chat_id: int) -> None:
+        with self._conn:
+            self._conn.execute("DELETE FROM settings WHERE chat_id = ?", (chat_id,))
 
     def delete_events_older_than(self, ts: int) -> None:
         with self._conn:

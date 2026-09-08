@@ -20,7 +20,8 @@ def build_keyboard(occurrence_id: str) -> InlineKeyboardMarkup:
                 InlineKeyboardButton("✅ Yes", callback_data=f"rsvp:{occurrence_id}:yes"),
                 InlineKeyboardButton("❌ No", callback_data=f"rsvp:{occurrence_id}:no"),
                 InlineKeyboardButton("🤔 Maybe", callback_data=f"rsvp:{occurrence_id}:maybe"),
-            ]
+            ],
+            [InlineKeyboardButton("📋 Upcoming events", callback_data="show_list")],
         ]
     )
 

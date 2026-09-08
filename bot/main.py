@@ -4,8 +4,9 @@ from datetime import datetime, timedelta, timezone
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes
 
 from bot.calendar_source import fetch_occurrences
-from bot.commands import cmd_next, cmd_status
+from bot.commands import cmd_next, cmd_remind, cmd_status, handle_show_event, handle_show_list
 from bot.config import Config
+from bot.durations import format_minutes
 from bot.handlers import build_keyboard, build_message_text, handle_rsvp
 from bot.storage import Storage
 
@@ -24,30 +25,35 @@ async def poll_calendar(context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     now = datetime.now(timezone.utc)
-    reminder_window = timedelta(hours=config.reminder_hours_before)
+    offsets = storage.get_reminder_offsets(config.chat_id) or config.default_reminder_offsets_minutes
 
     for occurrence in occurrences:
-        if occurrence.start - reminder_window > now:
-            continue
         if occurrence.start < now:
             continue
-        if storage.is_reminded(occurrence.occurrence_id):
-            continue
 
-        storage.upsert_event(
-            occurrence.occurrence_id, occurrence.title, int(occurrence.start.timestamp()), occurrence.location
-        )
-        start_text = occurrence.start.astimezone().strftime("%a, %d.%m.%Y %H:%M")
-        text = build_message_text(occurrence.title, start_text, occurrence.location, storage, occurrence.occurrence_id)
-        message = await context.bot.send_message(
-            chat_id=config.chat_id,
-            text=text,
-            parse_mode="Markdown",
-            reply_markup=build_keyboard(occurrence.occurrence_id),
-        )
-        storage.add_message(occurrence.occurrence_id, config.chat_id, message.message_id)
-        storage.mark_reminded(occurrence.occurrence_id)
-        logger.info("Posted reminder for %s", occurrence.title)
+        for offset_minutes in offsets:
+            if occurrence.start - timedelta(minutes=offset_minutes) > now:
+                continue
+            if storage.is_reminded(occurrence.occurrence_id, offset_minutes):
+                continue
+
+            storage.upsert_event(
+                occurrence.occurrence_id, occurrence.title, int(occurrence.start.timestamp()), occurrence.location
+            )
+            start_text = occurrence.start.astimezone().strftime("%a, %d.%m.%Y %H:%M")
+            header = f"⏰ *{format_minutes(offset_minutes)} reminder*\n"
+            text = header + build_message_text(
+                occurrence.title, start_text, occurrence.location, storage, occurrence.occurrence_id
+            )
+            message = await context.bot.send_message(
+                chat_id=config.chat_id,
+                text=text,
+                parse_mode="Markdown",
+                reply_markup=build_keyboard(occurrence.occurrence_id),
+            )
+            storage.add_message(occurrence.occurrence_id, config.chat_id, message.message_id)
+            storage.mark_reminded(occurrence.occurrence_id, offset_minutes)
+            logger.info("Posted %s reminder for %s", format_minutes(offset_minutes), occurrence.title)
 
     cutoff = int((now - timedelta(days=1)).timestamp())
     storage.delete_events_older_than(cutoff)
@@ -63,8 +69,11 @@ def main() -> None:
     application.bot_data["storage"] = storage
 
     application.add_handler(CallbackQueryHandler(handle_rsvp, pattern=r"^rsvp:"))
+    application.add_handler(CallbackQueryHandler(handle_show_event, pattern=r"^show_event:"))
+    application.add_handler(CallbackQueryHandler(handle_show_list, pattern=r"^show_list$"))
     application.add_handler(CommandHandler("next", cmd_next))
     application.add_handler(CommandHandler("status", cmd_status))
+    application.add_handler(CommandHandler("remind", cmd_remind))
     application.job_queue.run_repeating(
         poll_calendar, interval=config.poll_interval_minutes * 60, first=5
     )
