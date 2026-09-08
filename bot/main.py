@@ -1,9 +1,10 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from telegram.ext import Application, CallbackQueryHandler, ContextTypes
+from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes
 
 from bot.calendar_source import fetch_occurrences
+from bot.commands import cmd_naechste, cmd_status
 from bot.config import Config
 from bot.handlers import build_keyboard, build_message_text, handle_rsvp
 from bot.storage import Storage
@@ -53,6 +54,7 @@ async def poll_calendar(context: ContextTypes.DEFAULT_TYPE) -> None:
 
     cutoff = int((now - timedelta(days=1)).timestamp())
     storage.delete_events_older_than(cutoff)
+    context.bot_data["last_poll"] = now
 
 
 def main() -> None:
@@ -64,6 +66,8 @@ def main() -> None:
     application.bot_data["storage"] = storage
 
     application.add_handler(CallbackQueryHandler(handle_rsvp, pattern=r"^rsvp:"))
+    application.add_handler(CommandHandler("naechste", cmd_naechste))
+    application.add_handler(CommandHandler("status", cmd_status))
     application.job_queue.run_repeating(
         poll_calendar, interval=config.poll_interval_minutes * 60, first=5
     )

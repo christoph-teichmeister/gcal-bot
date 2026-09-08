@@ -6,6 +6,19 @@ postet — mit Zusage/Absage/Vielleicht-Buttons (RSVP), Teilnehmerliste live in
 der Nachricht. Läuft als **Home Assistant Add-on** (Supervisor), kein separates
 Docker-Gefrickel nötig.
 
+## Commands
+
+- `/naechste` — zeigt die nächsten anstehenden Termine (on-demand, ohne auf den
+  nächsten Poll zu warten)
+- `/status` — letzter Kalender-Check, Konfiguration, Anzahl anstehender bereits
+  geposteter Termine
+
+Bei BotFather via `/setcommands` eintragen, damit sie im "/"-Menü erscheinen:
+```
+naechste - Nächste Termine anzeigen
+status - Bot-Status anzeigen
+```
+
 ## Setup
 
 ### 1. Telegram-Bot anlegen

@@ -69,6 +69,10 @@ class Storage:
         ) as cur:
             return cur.fetchall()
 
+    def count_upcoming(self, ts: int) -> int:
+        with closing(self._conn.execute("SELECT COUNT(*) FROM events WHERE start_ts >= ?", (ts,))) as cur:
+            return cur.fetchone()[0]
+
     def delete_events_older_than(self, ts: int) -> None:
         with self._conn:
             old_uids = [row[0] for row in self._conn.execute("SELECT uid FROM events WHERE start_ts < ?", (ts,))]
