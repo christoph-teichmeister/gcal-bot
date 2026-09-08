@@ -16,6 +16,19 @@ NOT_ONBOARDED_TEXT = (
     "This group isn't set up yet. Run `/onboard <ical-url>` with your calendar's "
     "secret iCal URL first — see /onboard for instructions."
 )
+WELCOME_TEXT = (
+    "👋 *Hi, I'm GCal Bot!*\n\n"
+    "I post reminders for events from a Google Calendar into this chat, with "
+    "buttons to say Yes/No/Maybe — everyone can see who's in.\n\n"
+    "*Getting started*\n"
+    "1️⃣ `/onboard <ical-url>` — connect me to a calendar (Google Calendar → "
+    "Settings → your calendar → \"Secret address in iCal format\")\n"
+    "2️⃣ Done — I'll post reminders automatically (default: 24h before each event)\n\n"
+    "*Other commands*\n"
+    "`/next` — list upcoming events, tap one to RSVP\n"
+    "`/remind` — view or change the reminder schedule, e.g. `/remind 24h 1h 15m`\n"
+    "`/status` — check my current setup for this chat"
+)
 
 
 class NotOnboardedError(Exception):
@@ -47,6 +60,18 @@ def _fetch_upcoming(config: Config, storage: Storage, chat_id: int) -> list[Occu
     occurrences = _fetch_occurrences_for_chat(config, storage, chat_id)
     now = datetime.now(timezone.utc)
     return sorted((o for o in occurrences if o.start >= now), key=lambda o: o.start)[:MAX_UPCOMING_SHOWN]
+
+
+async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.effective_message.reply_text(WELCOME_TEXT, parse_mode="Markdown")
+
+
+async def handle_bot_membership(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    change = update.my_chat_member
+    was_in_chat = change.old_chat_member.status in ("member", "administrator", "creator")
+    is_in_chat = change.new_chat_member.status in ("member", "administrator", "creator")
+    if is_in_chat and not was_in_chat:
+        await context.bot.send_message(chat_id=change.chat.id, text=WELCOME_TEXT, parse_mode="Markdown")
 
 
 async def cmd_onboard(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

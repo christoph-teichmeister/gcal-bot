@@ -8,6 +8,9 @@ groups, each with its own calendar — every group sets itself up with
 `/onboard`, no Home Assistant config needed per group. Runs as a **Home
 Assistant add-on** (Supervisor), no manual Docker juggling needed.
 
+The bot also posts a welcome message with a quick how-to whenever it's added
+to a new group (and replies with the same text to `/start`).
+
 ## Commands
 
 - `/onboard <ical-url>` — connect this group to a calendar (run once per

@@ -1,10 +1,20 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes
+from telegram import Update
+from telegram.ext import Application, CallbackQueryHandler, ChatMemberHandler, CommandHandler, ContextTypes
 
 from bot.calendar_source import fetch_occurrences
-from bot.commands import cmd_next, cmd_onboard, cmd_remind, cmd_status, handle_show_event, handle_show_list
+from bot.commands import (
+    cmd_next,
+    cmd_onboard,
+    cmd_remind,
+    cmd_start,
+    cmd_status,
+    handle_bot_membership,
+    handle_show_event,
+    handle_show_list,
+)
 from bot.config import Config
 from bot.durations import format_minutes
 from bot.handlers import build_keyboard, build_message_text, handle_rsvp
@@ -78,16 +88,18 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(handle_rsvp, pattern=r"^rsvp:"))
     application.add_handler(CallbackQueryHandler(handle_show_event, pattern=r"^show_event:"))
     application.add_handler(CallbackQueryHandler(handle_show_list, pattern=r"^show_list$"))
+    application.add_handler(CommandHandler("start", cmd_start))
     application.add_handler(CommandHandler("onboard", cmd_onboard))
     application.add_handler(CommandHandler("next", cmd_next))
     application.add_handler(CommandHandler("status", cmd_status))
     application.add_handler(CommandHandler("remind", cmd_remind))
+    application.add_handler(ChatMemberHandler(handle_bot_membership, ChatMemberHandler.MY_CHAT_MEMBER))
     application.job_queue.run_repeating(
         poll_calendar, interval=config.poll_interval_minutes * 60, first=5
     )
 
     logger.info("Starting calendar bot (poll every %s min)", config.poll_interval_minutes)
-    application.run_polling()
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":
