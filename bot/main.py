@@ -37,9 +37,22 @@ async def poll_chat(context: ContextTypes.DEFAULT_TYPE, config: Config, storage:
             continue
 
         for offset_minutes in offsets:
-            if occurrence.start - timedelta(minutes=offset_minutes) > now:
+            window_start = occurrence.start - timedelta(minutes=offset_minutes)
+            if window_start > now:
                 continue
             if storage.is_reminded(occurrence.occurrence_id, offset_minutes):
+                continue
+
+            stale_after = timedelta(minutes=config.poll_interval_minutes * 2)
+            if now - window_start > stale_after:
+                storage.mark_reminded(occurrence.occurrence_id, offset_minutes)
+                logger.info(
+                    "Skipped stale %s reminder for %s in chat %s (window opened %s ago)",
+                    format_minutes(offset_minutes),
+                    occurrence.title,
+                    chat_id,
+                    now - window_start,
+                )
                 continue
 
             storage.upsert_event(
