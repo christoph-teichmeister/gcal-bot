@@ -1,0 +1,25 @@
+# Changelog
+
+## 1.4.0
+
+- Packaged as a Home Assistant Supervisor add-on (local add-on, no manual
+  `docker run` needed)
+- `/onboard <ical-url>`: each group connects itself to its own calendar —
+  no per-group config in Home Assistant anymore
+- `/next`: tappable list of upcoming events; tap one to see details and RSVP
+- `/remind`: per-group reminder schedule, supports multiple offsets
+  (e.g. `24h 1h 15m`), independent of the add-on's default
+- `/status`: current setup, last calendar check, reminder schedule for the chat
+- Welcome message (and `/start`) explaining how to use the bot when it's
+  added to a group
+- Translated all bot text, README, and privacy policy to English
+- Fixed RSVP buttons not responding (callback parsing broke on event IDs
+  containing `:`)
+- Clear error message when the configured URL isn't a valid iCal feed,
+  instead of a raw parser crash
+- Add-on icon and logo
+
+## 1.0.0
+
+- Initial release: polls a Google Calendar iCal feed and posts reminders
+  with Yes/No/Maybe RSVP buttons to a single configured Telegram group
