@@ -1,4 +1,7 @@
+from datetime import datetime, timezone
+
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
 from bot.storage import Storage
@@ -40,6 +43,30 @@ def build_message_text(title: str, start_text: str, location: str, storage: Stor
     return "\n".join(lines)
 
 
+async def refresh_event_messages(context: ContextTypes.DEFAULT_TYPE, storage: Storage, occurrence_id: str) -> None:
+    event = storage.get_event(occurrence_id)
+    if event is None:
+        return
+    _, title, start_ts, location = event
+
+    start_text = datetime.fromtimestamp(start_ts, tz=timezone.utc).astimezone().strftime("%a, %d.%m.%Y %H:%M")
+    text = build_message_text(title, start_text, location, storage, occurrence_id)
+    keyboard = build_keyboard(occurrence_id)
+
+    for chat_id, message_id in storage.get_messages(occurrence_id):
+        try:
+            await context.bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=message_id,
+                text=text,
+                parse_mode="Markdown",
+                reply_markup=keyboard,
+            )
+        except BadRequest as error:
+            if "not modified" not in str(error).lower():
+                raise
+
+
 async def handle_rsvp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     storage: Storage = context.bot_data["storage"]
@@ -52,20 +79,4 @@ async def handle_rsvp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     storage.set_rsvp(occurrence_id, user.id, user_name, status)
     await query.answer(f"Saved: {STATUS_LABELS[status]}")
 
-    event = storage.get_event(occurrence_id)
-    if event is None:
-        return
-    _, chat_id, message_id, title, start_ts, location = event
-
-    from datetime import datetime, timezone
-
-    start_text = datetime.fromtimestamp(start_ts, tz=timezone.utc).astimezone().strftime("%a, %d.%m.%Y %H:%M")
-    text = build_message_text(title, start_text, location, storage, occurrence_id)
-
-    await context.bot.edit_message_text(
-        chat_id=chat_id,
-        message_id=message_id,
-        text=text,
-        parse_mode="Markdown",
-        reply_markup=build_keyboard(occurrence_id),
-    )
+    await refresh_event_messages(context, storage, occurrence_id)

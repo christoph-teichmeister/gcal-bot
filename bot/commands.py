@@ -5,6 +5,7 @@ from telegram.ext import ContextTypes
 
 from bot.calendar_source import fetch_occurrences
 from bot.config import Config
+from bot.handlers import build_keyboard, build_message_text
 from bot.storage import Storage
 
 MAX_UPCOMING_SHOWN = 5
@@ -12,6 +13,7 @@ MAX_UPCOMING_SHOWN = 5
 
 async def cmd_next(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     config: Config = context.bot_data["config"]
+    storage: Storage = context.bot_data["storage"]
 
     try:
         occurrences = fetch_occurrences(config.ical_url, config.lookahead_days)
@@ -26,15 +28,20 @@ async def cmd_next(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.effective_message.reply_text(f"No events in the next {config.lookahead_days} days.")
         return
 
-    lines = ["🎲 *Upcoming events:*", ""]
+    chat_id = update.effective_chat.id
     for occurrence in upcoming:
+        storage.upsert_event(
+            occurrence.occurrence_id, occurrence.title, int(occurrence.start.timestamp()), occurrence.location
+        )
         start_text = occurrence.start.astimezone().strftime("%a, %d.%m.%Y %H:%M")
-        line = f"🕒 {start_text} – {occurrence.title}"
-        if occurrence.location:
-            line += f" (📍 {occurrence.location})"
-        lines.append(line)
-
-    await update.effective_message.reply_text("\n".join(lines), parse_mode="Markdown")
+        text = build_message_text(occurrence.title, start_text, occurrence.location, storage, occurrence.occurrence_id)
+        message = await context.bot.send_message(
+            chat_id=chat_id,
+            text=text,
+            parse_mode="Markdown",
+            reply_markup=build_keyboard(occurrence.occurrence_id),
+        )
+        storage.add_message(occurrence.occurrence_id, chat_id, message.message_id)
 
 
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -53,6 +60,6 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         f"Check interval: every {config.poll_interval_minutes:g} minutes",
         f"Reminder: {config.reminder_hours_before:g} hours before event",
         f"Lookahead: {config.lookahead_days} days",
-        f"Upcoming events already posted: {upcoming_count}",
+        f"Upcoming events tracked: {upcoming_count}",
     ]
     await update.effective_message.reply_text("\n".join(lines), parse_mode="Markdown")

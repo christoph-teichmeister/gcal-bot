@@ -31,9 +31,12 @@ async def poll_calendar(context: ContextTypes.DEFAULT_TYPE) -> None:
             continue
         if occurrence.start < now:
             continue
-        if storage.is_event_posted(occurrence.occurrence_id):
+        if storage.is_reminded(occurrence.occurrence_id):
             continue
 
+        storage.upsert_event(
+            occurrence.occurrence_id, occurrence.title, int(occurrence.start.timestamp()), occurrence.location
+        )
         start_text = occurrence.start.astimezone().strftime("%a, %d.%m.%Y %H:%M")
         text = build_message_text(occurrence.title, start_text, occurrence.location, storage, occurrence.occurrence_id)
         message = await context.bot.send_message(
@@ -42,14 +45,8 @@ async def poll_calendar(context: ContextTypes.DEFAULT_TYPE) -> None:
             parse_mode="Markdown",
             reply_markup=build_keyboard(occurrence.occurrence_id),
         )
-        storage.save_posted_event(
-            occurrence.occurrence_id,
-            config.chat_id,
-            message.message_id,
-            occurrence.title,
-            int(occurrence.start.timestamp()),
-            occurrence.location,
-        )
+        storage.add_message(occurrence.occurrence_id, config.chat_id, message.message_id)
+        storage.mark_reminded(occurrence.occurrence_id)
         logger.info("Posted reminder for %s", occurrence.title)
 
     cutoff = int((now - timedelta(days=1)).timestamp())
