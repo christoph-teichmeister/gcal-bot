@@ -61,9 +61,9 @@ Then in the HA UI:
 1. **Settings → Add-ons → Add-on Store → top-right "⋮" → Reload the store**
 2. The add-on shows up under "Local add-ons" → install it
 3. **Configuration** tab: fill in `bot_token` (plus optionally
-   `reminder_offsets` — comma/space-separated durations like `24h,1h,15m`,
-   used as the default for groups that haven't run `/remind` —
-   `poll_interval_minutes`, `lookahead_days`)
+   `poll_interval_minutes`, `lookahead_days`). The default reminder schedule
+   (24h before) and per-group calendars are configured via Telegram, not here
+   — see `/remind` and `/onboard` below.
 4. **Info** tab → Start, enable "Start on boot"
 5. Run `/onboard <ical-url>` in each group that should use the bot
 

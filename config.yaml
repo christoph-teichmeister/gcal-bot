@@ -11,11 +11,9 @@ arch:
 init: false
 options:
   bot_token: ""
-  reminder_offsets: "24h"
   poll_interval_minutes: 15
   lookahead_days: 30
 schema:
   bot_token: str
-  reminder_offsets: str
   poll_interval_minutes: float
   lookahead_days: int
