@@ -32,6 +32,14 @@ remind - View or change the reminder schedule
 status - Show bot status
 ```
 
+## Rescheduling an event
+
+Move the event in Google Calendar — the bot picks it up on its next poll
+(`poll_interval_minutes`). If the event was already posted in the group or
+someone RSVPed, it posts a "📅 Rescheduled (was …)" notice, updates the old
+messages to the new time and keeps everyone's RSVPs. Reminders follow the
+new time. The bot can't move events itself: the iCal feed is read-only.
+
 ## Setup
 
 ### 1. Create a Telegram bot

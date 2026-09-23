@@ -84,6 +84,17 @@ class Storage:
             )
             self._conn.execute(
                 """
+                CREATE TABLE IF NOT EXISTS tracked_occurrences (
+                    chat_id INTEGER NOT NULL,
+                    series_key TEXT NOT NULL,
+                    occurrence_id TEXT NOT NULL,
+                    start_ts INTEGER NOT NULL,
+                    PRIMARY KEY (chat_id, series_key)
+                )
+                """
+            )
+            self._conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS tokens (
                     token TEXT PRIMARY KEY,
                     occurrence_id TEXT NOT NULL
@@ -198,8 +209,46 @@ class Storage:
             row = cur.fetchone()
             return row[0] if row else None
 
+    def get_tracked_occurrence(self, chat_id: int, series_key: str) -> tuple[str, int] | None:
+        with closing(
+            self._conn.execute(
+                "SELECT occurrence_id, start_ts FROM tracked_occurrences WHERE chat_id = ? AND series_key = ?",
+                (chat_id, series_key),
+            )
+        ) as cur:
+            return cur.fetchone()
+
+    def track_occurrence(self, chat_id: int, series_key: str, occurrence_id: str, start_ts: int) -> None:
+        with self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO tracked_occurrences (chat_id, series_key, occurrence_id, start_ts) "
+                "VALUES (?, ?, ?, ?)",
+                (chat_id, series_key, occurrence_id, start_ts),
+            )
+
+    def has_activity(self, uid: str) -> bool:
+        with closing(
+            self._conn.execute(
+                "SELECT 1 FROM messages WHERE uid = ? UNION SELECT 1 FROM rsvps WHERE uid = ?", (uid, uid)
+            )
+        ) as cur:
+            return cur.fetchone() is not None
+
+    def move_occurrence(self, old_uid: str, new_uid: str) -> None:
+        """Carry RSVPs, posted messages and button tokens over to the rescheduled occurrence.
+
+        Sent-reminder markers are dropped, not carried: the new time gets its own reminders.
+        """
+        with self._conn:
+            self._conn.execute("UPDATE OR IGNORE rsvps SET uid = ? WHERE uid = ?", (new_uid, old_uid))
+            self._conn.execute("UPDATE OR IGNORE messages SET uid = ? WHERE uid = ?", (new_uid, old_uid))
+            self._conn.execute("UPDATE tokens SET occurrence_id = ? WHERE occurrence_id = ?", (new_uid, old_uid))
+            for table in ("rsvps", "messages", "reminders", "events"):
+                self._conn.execute(f"DELETE FROM {table} WHERE uid = ?", (old_uid,))
+
     def delete_events_older_than(self, ts: int) -> None:
         with self._conn:
+            self._conn.execute("DELETE FROM tracked_occurrences WHERE start_ts < ?", (ts,))
             old_uids = [row[0] for row in self._conn.execute("SELECT uid FROM events WHERE start_ts < ?", (ts,))]
             if not old_uids:
                 return
