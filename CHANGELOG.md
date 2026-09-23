@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.6.0
+
+- Moving an event in Google Calendar is now handled as a reschedule, not as
+  a brand-new event: RSVPs carry over, already-posted reminder messages are
+  updated to the new time (their buttons keep working), and the group gets a
+  "📅 Rescheduled (was …)" notice — only if the event was already posted or
+  someone had RSVPed, otherwise the regular reminder shows the new time
+  anyway. Reminders are re-planned for the new time. Works for single events
+  and for moved instances of recurring events. Previously RSVPs were lost
+  and old messages kept showing the old time.
+
 ## 1.5.0
 
 - Fixed cross-group data leak: events, reminders, and RSVPs are now scoped
