@@ -10,6 +10,11 @@
   anyway. Reminders are re-planned for the new time. Works for single events
   and for moved instances of recurring events. Previously RSVPs were lost
   and old messages kept showing the old time.
+- The GitHub repo is now a Home Assistant add-on repository: add
+  `https://github.com/christoph-teichmeister/gcal-bot` under Add-on Store →
+  Repositories and HA offers new versions as updates, no more copying files
+  to the Pi. Switching over from the local add-on means a fresh `/data`, so
+  run `/onboard` again in each group (see README).
 
 ## 1.5.0
 

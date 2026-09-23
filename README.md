@@ -1,6 +1,6 @@
 # gcal-bot
 
-<img src="logo.png" width="128" height="128" alt="GCal Bot logo">
+<img src="gcal_bot/logo.png" width="128" height="128" alt="GCal Bot logo">
 
 Telegram bot that reads events from a Google Calendar iCal feed and posts
 reminders to a Telegram group before each event starts — with Yes/No/Maybe
@@ -62,17 +62,12 @@ yet).
 
 ## Install as a Home Assistant add-on
 
-Supervisor auto-detects any folder under `/addons/` on the HAOS host as a
-local add-on — no repository/store entry needed.
+This repo is a Home Assistant add-on repository, so HA pulls new versions
+itself — no copying files to the Pi.
 
-```bash
-# locally: copy the repo to the Pi
-scp -r . homeassistant:/addons/gcal-bot
-```
-
-Then in the HA UI:
-1. **Settings → Add-ons → Add-on Store → top-right "⋮" → Reload the store**
-2. The add-on shows up under "Local add-ons" → install it
+1. **Settings → Add-ons → Add-on Store → top-right "⋮" → Repositories** →
+   add `https://github.com/christoph-teichmeister/gcal-bot`
+2. "GCal Bot" shows up in the store → install it
 3. **Configuration** tab: fill in `bot_token` (plus optionally
    `poll_interval_minutes`, `lookahead_days`). The default reminder schedule
    (24h before) and per-group calendars are configured via Telegram, not here
@@ -80,12 +75,34 @@ Then in the HA UI:
 4. **Info** tab → Start, enable "Start on boot"
 5. Run `/onboard <ical-url>` in each group that should use the bot
 
-Logs are visible right in the add-on's "Log" tab. After a code change: `scp`
-again, then hit "Rebuild" in the add-on tab.
+Logs are visible right in the add-on's "Log" tab.
+
+### Updates
+A new version is released by bumping `version` in `gcal_bot/config.yaml`
+(plus an entry in `gcal_bot/CHANGELOG.md`) on `main`. HA checks the
+repository periodically; to check right away: Add-on Store → "⋮" → "Check for
+updates". The add-on then shows an "Update" button with the changelog.
+Settings, onboarded groups and RSVPs live in the add-on's `/data` and survive
+updates.
+
+### Switching from the old local add-on
+Earlier versions were installed by copying the repo to `/addons/` on the Pi.
+HA treats the repository add-on as a *different* add-on with its own `/data`,
+so after switching: run `/onboard` again in each group and re-set `/remind`
+if you changed it; RSVPs on upcoming events start empty. Uninstall the local
+add-on (and delete `/addons/gcal-bot`) before starting the new one — two
+running copies with the same bot token would fight over Telegram updates.
+
+### Local development add-on
+Copying just the add-on folder still works for testing unreleased changes:
+`scp -r gcal_bot homeassistant:/addons/`, then reload the store and install
+it from "Local add-ons"; after further changes `scp` again and hit
+"Rebuild".
 
 ## Test locally (without HA)
 
 ```bash
+cd gcal_bot
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 export BOT_TOKEN=...
