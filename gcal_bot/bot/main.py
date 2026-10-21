@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -165,6 +166,8 @@ def main() -> None:
         poll_calendar, interval=config.poll_interval_minutes * 60, first=5
     )
 
+    # Python 3.14: asyncio.get_event_loop() no longer creates a loop, and PTB 21.x run_polling() relies on it.
+    asyncio.set_event_loop(asyncio.new_event_loop())
     logger.info("Starting calendar bot (poll every %s min)", config.poll_interval_minutes)
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 

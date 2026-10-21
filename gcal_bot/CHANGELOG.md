@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.2
+
+- Fix: the bot crashed at start on Python 3.14 (new base image) with
+  "There is no current event loop". It now creates its event loop itself.
+
 ## 1.6.1
 
 - Security: newer base image (Alpine 3.24 on aarch64/amd64, 3.22 on
