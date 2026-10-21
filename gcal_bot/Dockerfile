@@ -6,7 +6,8 @@ RUN apk add --no-cache python3 py3-pip
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages --upgrade 'pip>=26.2.2' \
+    && pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
 COPY bot ./bot
 COPY run.sh /

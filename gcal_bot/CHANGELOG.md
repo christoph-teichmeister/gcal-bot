@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.1
+
+- Security: newer base image (Alpine 3.24 on aarch64/amd64, 3.22 on
+  armhf/armv7, the newest published there), pip upgraded to >= 26.2.2 and
+  certifi pinned to 2026.10.19 so the removed eMudhra/emSign CA certificates
+  are no longer trusted.
+
 ## 1.6.0
 
 - Moving an event in Google Calendar is now handled as a reschedule, not as
