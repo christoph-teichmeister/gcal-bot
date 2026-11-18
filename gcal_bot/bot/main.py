@@ -22,6 +22,8 @@ from bot.handlers import build_keyboard, build_message_text, handle_rsvp, refres
 from bot.storage import Storage
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+# httpx logs every request URL at INFO, and the Telegram URL contains the bot token.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger("calendar_bot")
 
 

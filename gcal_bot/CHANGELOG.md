@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.3
+
+- Security: the bot no longer logs Telegram request URLs, so the bot token
+  stays out of the add-on log.
+
 ## 1.6.2
 
 - Fix: the bot crashed at start on Python 3.14 (new base image) with
